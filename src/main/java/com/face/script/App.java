@@ -35,6 +35,7 @@ public class App {
     static final String authToken = "Basic " + Base64.getEncoder().encodeToString(
             (dotenv.get("elastic_user") + ":" + dotenv.get("elastic_password")).getBytes());
 
+            
     public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException, UnirestException {
 
         Class.forName("oracle.jdbc.OracleDriver");
