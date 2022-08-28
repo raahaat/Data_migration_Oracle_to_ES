@@ -1,155 +1,56 @@
 package com.face.script;
 
 import java.io.IOException;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.simple.JSONObject;
-
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 
-import io.github.cdimascio.dotenv.Dotenv;
 
 public class App {
-    static Dotenv dotenv = Dotenv.load();
-    static long startTime = System.currentTimeMillis();
-    static Connection con;
-    static Map<String, double[]> customerDataArray = new HashMap<>();
-    static List<String> nullData = new ArrayList<>();
-    static List<String> cannotEncode = new ArrayList<>();
     
-    static final String authToken = "Basic " + Base64.getEncoder().encodeToString(
-            (dotenv.get("elastic_user") + ":" + dotenv.get("elastic_password")).getBytes());
+    public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException, UnirestException, InterruptedException {
 
-            
-    public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException, UnirestException {
-
-        Class.forName("oracle.jdbc.OracleDriver");
-        con = DriverManager.getConnection(
-                dotenv.get("db_url"), dotenv.get("db_user"), dotenv.get("db_password"));
-
-        List<String> custNumbers = new ArrayList<>();
-        custNumbers = getCustNumFromDatabase();
-
-        for (int i = 0; i < custNumbers.size(); i++) {
-            encodeAndInsertToES(custNumbers, i);
-        }
-
-        long endTime = System.currentTimeMillis();
-        System.out.println("Successful : " + customerDataArray.size());
-        System.out.println("No data: " + nullData.size());
-        System.out.println("Unable to Encode: " + cannotEncode.size());
-        System.out.println("Time taken: " + (endTime - startTime) / 1000 + "sec");
-    }
-
-    static double[] convertToArray(JSONArray jsonArray) {
-
-        double[] fData = new double[jsonArray.length()];
-        for (int i = 0; i < jsonArray.length(); i++) {
-            try {
-                fData[i] = jsonArray.getDouble(i);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        return fData;
-    }
-
-    public static byte[] getByteDataFromBlob(Blob blob) {
-        if (blob != null) {
-            try {
-                return blob.getBytes(1, (int) blob.length());
-            } catch (SQLException ex) {
-                System.out.println(ex);
-            }
-        }
-        return null;
-    }
-
-    public static List<String> getCustNumFromDatabase() throws SQLException, ClassNotFoundException {
-        List<String> custNumbers = new ArrayList<>();
-        java.sql.Statement stmt = con.createStatement();
-        ResultSet rs = ((java.sql.Statement) stmt).executeQuery(dotenv.get("db_query"));
-
-        while (rs.next()) {
-            custNumbers.add(rs.getString("CUST_NO"));
-        }
-        return custNumbers;
-
-    }
-
-    public static Void encodeAndInsertToES(List<String> custNumbers, int i)
-            throws SQLException, ClassNotFoundException {
-        PreparedStatement smt = (PreparedStatement) con
-                .prepareStatement("select CUST_IMAGE from MEMBER_IMAGE where CUST_NO= ? ");
-        ((PreparedStatement) smt).setString(1, custNumbers.get(i));
-        ResultSet rs = ((PreparedStatement) smt).executeQuery();
-
-        while (rs.next()) {
-            try {
-                String base64 = Base64.getEncoder().encodeToString(getByteDataFromBlob(rs.getBlob("CUST_IMAGE")));
-                JSONObject obj = new JSONObject();
-                obj.put("image", base64);
-
-                try {
-                    HttpResponse<JsonNode> response = Unirest.post(dotenv.get("api_url"))
-                            .header("Content-Type", "application/json")
-                            .body(obj.toJSONString())
-                            .asJson();
-
-                    JSONArray encodings = new JSONArray();
-                    encodings = response.getBody().getObject().getJSONObject("data").getJSONArray("encodings");
-                    double imageData[];
-                    imageData = convertToArray(encodings);
-                    customerDataArray.put(custNumbers.get(i), imageData);
-                    JSONObject custObj = new JSONObject();
-                    custObj.put("custNum", custNumbers.get(i));
-                    custObj.put("faceData", new JSONArray(imageData));
-
-                    try {
-                        kong.unirest.Unirest.config().verifySsl(false);
-                        kong.unirest.Unirest.post(dotenv.get("elasitc_api"))
-                                .header("Authorization", authToken)
-                                .header("Content-Type", "application/json")
-                                .body(custObj.toJSONString())
-                                .asString();
-
-                        System.out.println("data inserted for: " + custNumbers.get(i));
-                    } catch (Exception e) {
-                        System.out.println("Exception.........");
-                        e.printStackTrace();
-                    }
-
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    cannotEncode.add(custNumbers.get(i));
-                }
-
-            } catch (Exception ex) {
-                System.out.println("[ERROR]" + ex.toString());
-                nullData.add(custNumbers.get(i));
-            } 
-        }
-        rs.close();
-        smt.close();
-
-
-        return null;
-
+        long startTime = System.currentTimeMillis();
+        ETLThread tr = new ETLThread(0,14);
+        ETLThread tr1 = new ETLThread(14,14);
+        ETLThread tr2 = new ETLThread(28,14);
+        ETLThread tr3 = new ETLThread(42,14);
+        ETLThread tr4 = new ETLThread(56,16);
+        // ETLThread tr5 = new ETLThread(0,72);
+        // ETLThread tr6 = new ETLThread(0,72);
+        // ETLThread tr7 = new ETLThread(0,72);
+        // ETLThread tr8 = new ETLThread(0,72);
+        // ETLThread tr9 = new ETLThread(0,72);
+        Thread t = new Thread(tr);
+        Thread t1 = new Thread(tr1);
+        Thread t2 = new Thread(tr2);
+        Thread t3 = new Thread(tr3);
+        Thread t4 = new Thread(tr4);
+        // Thread t5 = new Thread(tr5);
+        // Thread t6 = new Thread(tr6);
+        // Thread t7 = new Thread(tr7);
+        // Thread t8 = new Thread(tr8);
+        // Thread t9 = new Thread(tr9);
+        t.start();
+        t1.start();
+        t2.start();
+        t3.start();
+        t4.start();
+        // t5.start();
+        // t6.start();
+        // t7.start();
+        // t8.start();
+        // t9.start();
+        t.join();
+        t1.join();
+        t2.join();
+        t3.join();
+        t4.join();
+        // t5.join();
+        // t6.join();
+        // t7.join();
+        // t8.join();
+        // t9.join();
+        System.out.println("Time Consumed: " + (System.currentTimeMillis() - startTime)/1000);
     }
 
 }
