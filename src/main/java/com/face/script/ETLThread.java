@@ -6,8 +6,12 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,6 +127,10 @@ public class ETLThread implements Runnable {
         ResultSet rs = ((PreparedStatement) smt).executeQuery();
         PreparedStatement pstmt;
 
+        String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        String date = simpleDateFormat.format(new Date());
+
         while (rs.next()) {
             try {
                 String base64 = Base64.getEncoder().encodeToString(getByteDataFromBlob(rs.getBlob("CUST_IMAGE")));
@@ -140,9 +148,14 @@ public class ETLThread implements Runnable {
                     double imageData[];
                     imageData = convertToArray(encodings);
                     customerDataArray.put(custNumbers.get(i), imageData);
+
+                    JSONObject payload = new JSONObject();
                     JSONObject custObj = new JSONObject();
-                    custObj.put("custNum", custNumbers.get(i));
-                    custObj.put("faceData", new JSONArray(imageData));
+                    custObj.put("customerNumber", custNumbers.get(i));
+                    custObj.put("faceEncodings", new JSONArray(imageData));
+                    custObj.put("payload", payload);
+                    custObj.put("createdAt", date);
+                    custObj.put("createdBy", "Admin");
 
                     try {
                         kong.unirest.Unirest.config().verifySsl(false);
@@ -152,15 +165,26 @@ public class ETLThread implements Runnable {
                                 .body(custObj.toJSONString())
                                 .asString();
 
+                        pstmt = postCon.prepareStatement(
+                                "insert into migration_logs (customer_number, status, created_at, message) VALUES (?,  ?, ?, ?)");
+                        pstmt.setString(1, custNumbers.get(i));
+                        pstmt.setString(2, "SUCCESS");
+                        pstmt.setString(3, date);
+                        pstmt.setString(4, " ");
+                        pstmt.execute();
+                        pstmt.close();
                         System.out.println("Data inserted for: " + custNumbers.get(i));
 
                     } catch (Exception ex) {
                         System.out.println("Exception.........");
                         try {
                             pstmt = postCon.prepareStatement(
-                                    "insert into migration_logs (customer_number, migration_status) VALUES (?, 'err_es_insert')");
+                                    "insert into migration_logs (customer_number, status, created_at, message) VALUES (?, ?, ?, ?)");
                             pstmt.setString(1, custNumbers.get(i));
-                            pstmt.executeQuery();
+                            pstmt.setString(2, "FAILURE");
+                            pstmt.setString(3, date);
+                            pstmt.setString(4, ex.toString());
+                            pstmt.execute();
                             pstmt.close();
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -173,9 +197,13 @@ public class ETLThread implements Runnable {
                     cannotEncode.add(custNumbers.get(i));
                     try {
                         pstmt = postCon.prepareStatement(
-                                "insert into migration_logs (customer_number, migration_status) VALUES (?, 'err_encoding')");
+                                "insert into migration_logs (customer_number, status, created_at, message) VALUES (?,  ?, ?, ?)");
                         pstmt.setString(1, custNumbers.get(i));
+                        pstmt.setString(2, "FAILURE");
+                        pstmt.setString(3, date);
+                        pstmt.setString(4, ex.toString());
                         pstmt.execute();
+                        pstmt.close();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -186,9 +214,13 @@ public class ETLThread implements Runnable {
                 nullData.add(custNumbers.get(i));
                 try {
                     pstmt = postCon.prepareStatement(
-                            "insert into migration_logs (customer_number, migration_status) VALUES (?, 'err_null')");
+                            "insert into migration_logs (customer_number, status, created_at, message) VALUES (?,  ?, ?, ?)");
                     pstmt.setString(1, custNumbers.get(i));
+                    pstmt.setString(2, "EMPTY");
+                    pstmt.setString(3, date);
+                    pstmt.setString(4, ex.toString());
                     pstmt.execute();
+                    pstmt.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
