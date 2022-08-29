@@ -149,6 +149,7 @@ public class ETLThread implements Runnable {
                     customerDataArray.put(custNumbers.get(i), imageData);
 
                     JSONObject payload = new JSONObject();
+                    payload.put("customerNumber", custNumbers.get(i));
                     JSONObject custObj = new JSONObject();
                     custObj.put("customerNumber", custNumbers.get(i));
                     custObj.put("faceEncodings", new JSONArray(imageData));
