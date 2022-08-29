@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -30,9 +31,9 @@ public class ETLThread implements Runnable {
     static long startTime = System.currentTimeMillis();
     static Connection con;
     static Connection postCon;
-    static Map<String, double[]> customerDataArray = new HashMap<>();
-    static List<String> nullData = new ArrayList<>();
-    static List<String> cannotEncode = new ArrayList<>();
+    static Map<String, double[]> customerDataArray = Collections.synchronizedMap(new HashMap<>());
+    static List<String> nullData = Collections.synchronizedList(new ArrayList<>());
+    static List<String> cannotEncode = Collections.synchronizedList(new ArrayList<>());
     public int offset;
     public int fetch;
 
@@ -72,11 +73,11 @@ public class ETLThread implements Runnable {
             encodeAndInsertToES(custNumbers, i);
         }
 
-        long endTime = System.currentTimeMillis();
-        System.out.println("Successful : " + customerDataArray.size());
-        System.out.println("No data: " + nullData.size());
-        System.out.println("Unable to Encode: " + cannotEncode.size());
-        System.out.println("Time taken: " + (endTime - startTime) / 1000 + "sec");
+        // long endTime = System.currentTimeMillis();
+        // System.out.println("Successful : " + customerDataArray.size());
+        // System.out.println("Empty: " + nullData.size());
+        // System.out.println("Unable to Encode: " + cannotEncode.size());
+        // System.out.println("Time taken: " + (endTime - startTime) / 1000 + "sec");
     }
 
     static double[] convertToArray(JSONArray jsonArray) {

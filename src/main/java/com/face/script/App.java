@@ -31,7 +31,6 @@ public class App {
         int startIndex = 0;
         int chunk = (int) Math.floor(records / threads);
 
-        System.out.println(chunk);
         for (int i = 0; i < threads; i++) {
             if (i > 0 && (i == (threads - 1))) {
                 chunk += records % threads;
@@ -52,7 +51,11 @@ public class App {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
+        System.out.println("-------------------------END-------------------------");
+        System.out.println("Total records: " + startIndex);
+        System.out.println("Sucessful: " + ETLThread.customerDataArray.size());
+        System.out.println("Empty: " + ETLThread.nullData.size());
+        System.out.println("Cannot Encode: " + ETLThread.cannotEncode.size());
         System.out.println("Time Consumed: " + (System.currentTimeMillis() - startTime) / 1000);
     }
 

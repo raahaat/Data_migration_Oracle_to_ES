@@ -1,6 +1,6 @@
 create table migration_logs
-( id SERIAL UNIQUE PRIMARY KEY,
- customer_number VARCHAR(50),
+( id SERIAL UNIQUE PRIMARY KEY UNIQUE,
+ customer_number VARCHAR(50) UNIQUE,
  status varchar(20),
  created_at varchar(50),
  message varchar(255)
