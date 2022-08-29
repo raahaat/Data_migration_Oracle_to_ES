@@ -1,0 +1,25 @@
+create table migration_logs
+( id SERIAL UNIQUE PRIMARY KEY,
+ customer_number VARCHAR(50),
+ status varchar(20),
+ created_at varchar(50),
+ message varchar(255)
+)
+
+
+PUT /faces/
+{
+  "mappings": {
+    "properties": {
+      "customerNumber": {"type": "text"},
+      "faceEncodings": {"type": "dense_vector", "dims": 128},
+      "payload": {"type": "nested"},
+      "createdAt": {"type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss.SSS"
+      },
+      "createdBy": {"type": "text"},
+      "updatedAt": {"type": "date"},
+      "updatedBy": {"type": "text"}
+    }
+  }
+}
