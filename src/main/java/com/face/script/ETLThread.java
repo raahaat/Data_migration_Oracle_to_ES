@@ -58,7 +58,6 @@ public class ETLThread implements Runnable {
             try {
                 this.con.close();
                 this.postCon.close();
-                System.out.println("[INFO] Closing Conneciton.....");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -176,10 +175,9 @@ public class ETLThread implements Runnable {
                         pstmt.setString(4, " ");
                         pstmt.execute();
                         pstmt.close();
-                        System.out.println("Data inserted for: " + custNumbers.get(i));
+                        System.out.println("[INFO] Data inserted for: " + custNumbers.get(i));
 
                     } catch (Exception ex) {
-                        System.out.println("Exception.........");
                         try {
                             pstmt = postCon.prepareStatement(
                                     "insert into migration_logs (customer_number, status, created_at, message) VALUES (?, ?, ?, ?)");
@@ -192,11 +190,11 @@ public class ETLThread implements Runnable {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        ex.printStackTrace();
+                        System.out.println("[INFO] Can not insert data for: " + custNumbers.get(i));
                     }
 
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    System.out.println("[INFO] Can not insert data for: " + custNumbers.get(i));
                     cannotEncode.add(custNumbers.get(i));
                     try {
                         pstmt = postCon.prepareStatement(
@@ -213,7 +211,7 @@ public class ETLThread implements Runnable {
                 }
 
             } catch (Exception ex) {
-                System.out.println("[ERROR]" + ex.toString());
+                System.out.println("[INFO] No data found for: " + custNumbers.get(i));
                 nullData.add(custNumbers.get(i));
                 try {
                     pstmt = postCon.prepareStatement(

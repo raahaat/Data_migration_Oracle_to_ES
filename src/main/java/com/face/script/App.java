@@ -19,6 +19,7 @@ public class App {
 
         long startTime = System.currentTimeMillis();
         Dotenv dotenv = Dotenv.load();
+        Class.forName("oracle.jdbc.OracleDriver");
         Connection con = DriverManager.getConnection(
                 dotenv.get("db_url"), dotenv.get("db_user"), dotenv.get("db_password"));
 
