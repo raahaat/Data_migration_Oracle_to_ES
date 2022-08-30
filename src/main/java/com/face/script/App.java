@@ -51,6 +51,7 @@ public class App {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+      
         System.out.println("-------------------------END-------------------------");
         System.out.println("Total records: " + startIndex);
         System.out.println("Sucessful: " + ETLThread.customerDataArray.size());

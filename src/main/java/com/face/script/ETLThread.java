@@ -29,8 +29,8 @@ public class ETLThread implements Runnable {
 
     static Dotenv dotenv = Dotenv.load();
     static long startTime = System.currentTimeMillis();
-    static Connection con;
-    static Connection postCon;
+    private Connection con;
+    private Connection postCon;
     static Map<String, double[]> customerDataArray = Collections.synchronizedMap(new HashMap<>());
     static List<String> nullData = Collections.synchronizedList(new ArrayList<>());
     static List<String> cannotEncode = Collections.synchronizedList(new ArrayList<>());
@@ -54,16 +54,24 @@ public class ETLThread implements Runnable {
             executeProgram();
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                this.con.close();
+                this.postCon.close();
+                System.out.println("[INFO] Closing Conneciton.....");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
 
     }
 
     public void executeProgram() throws ClassNotFoundException, SQLException {
         Class.forName("oracle.jdbc.OracleDriver");
-        con = DriverManager.getConnection(
+        this.con = DriverManager.getConnection(
                 dotenv.get("db_url"), dotenv.get("db_user"), dotenv.get("db_password"));
 
-        postCon = DriverManager.getConnection(
+        this.postCon = DriverManager.getConnection(
                 dotenv.get("postgres_url"), dotenv.get("postgres_user"), dotenv.get("postgres_password"));
 
         List<String> custNumbers = new ArrayList<>();
@@ -73,11 +81,6 @@ public class ETLThread implements Runnable {
             encodeAndInsertToES(custNumbers, i);
         }
 
-        // long endTime = System.currentTimeMillis();
-        // System.out.println("Successful : " + customerDataArray.size());
-        // System.out.println("Empty: " + nullData.size());
-        // System.out.println("Unable to Encode: " + cannotEncode.size());
-        // System.out.println("Time taken: " + (endTime - startTime) / 1000 + "sec");
     }
 
     static double[] convertToArray(JSONArray jsonArray) {
@@ -93,7 +96,7 @@ public class ETLThread implements Runnable {
         return fData;
     }
 
-    public static byte[] getByteDataFromBlob(Blob blob) {
+    public byte[] getByteDataFromBlob(Blob blob) {
         if (blob != null) {
             try {
                 return blob.getBytes(1, (int) blob.length());
@@ -104,10 +107,10 @@ public class ETLThread implements Runnable {
         return null;
     }
 
-    public static List<String> getCustNumFromDatabase(int offset, int fetch)
+    public List<String> getCustNumFromDatabase(int offset, int fetch)
             throws SQLException, ClassNotFoundException {
         List<String> custNumbers = new ArrayList<>();
-        java.sql.Statement stmt = con.createStatement();
+        java.sql.Statement stmt = this.con.createStatement();
         ResultSet rs = ((java.sql.Statement) stmt).executeQuery(
                 dotenv.get("db_query") + " OFFSET " + offset + " ROWS FETCH FIRST " + fetch + " ROWS ONLY");
 
@@ -118,7 +121,7 @@ public class ETLThread implements Runnable {
 
     }
 
-    public static Void encodeAndInsertToES(List<String> custNumbers, int i)
+    public void encodeAndInsertToES(List<String> custNumbers, int i)
             throws SQLException, ClassNotFoundException {
         PreparedStatement smt = (PreparedStatement) con
                 .prepareStatement("select CUST_IMAGE from MEMBER_IMAGE where CUST_NO= ? ");
@@ -228,8 +231,6 @@ public class ETLThread implements Runnable {
         }
         rs.close();
         smt.close();
-
-        return null;
 
     }
 
