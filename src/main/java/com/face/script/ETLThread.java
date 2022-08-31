@@ -36,6 +36,7 @@ public class ETLThread implements Runnable {
     static List<String> cannotEncode = Collections.synchronizedList(new ArrayList<>());
     public int offset;
     public int fetch;
+    int count;
 
     public ETLThread() {
     }
@@ -77,7 +78,19 @@ public class ETLThread implements Runnable {
         custNumbers = getCustNumFromDatabase(offset, fetch);
 
         for (int i = 0; i < custNumbers.size(); i++) {
-            encodeAndInsertToES(custNumbers, i);
+
+            PreparedStatement pCount = postCon
+                    .prepareStatement("select count(*) from migration_logs where customer_number =?");
+            pCount.setString(1, custNumbers.get(i));
+            ResultSet rsCount = pCount.executeQuery();
+            rsCount.next();
+            count = rsCount.getInt(1);
+
+            if (count < 1) {
+                encodeAndInsertToES(custNumbers, i);
+            } else {
+                System.out.println("[INFO] Data Exists for: " + custNumbers.get(i));
+            }
         }
 
     }
@@ -194,7 +207,7 @@ public class ETLThread implements Runnable {
                     }
 
                 } catch (Exception ex) {
-                    System.out.println("[INFO] Can not insert data for: " + custNumbers.get(i));
+                    System.out.println("[ERROR] Can not encode data for: " + custNumbers.get(i));
                     cannotEncode.add(custNumbers.get(i));
                     try {
                         pstmt = postCon.prepareStatement(
@@ -211,7 +224,7 @@ public class ETLThread implements Runnable {
                 }
 
             } catch (Exception ex) {
-                System.out.println("[INFO] No data found for: " + custNumbers.get(i));
+                System.out.println("[ERROR] No data found for: " + custNumbers.get(i));
                 nullData.add(custNumbers.get(i));
                 try {
                     pstmt = postCon.prepareStatement(
