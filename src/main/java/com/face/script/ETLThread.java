@@ -78,7 +78,6 @@ public class ETLThread implements Runnable {
         custNumbers = getCustNumFromDatabase(offset, fetch);
 
         for (int i = 0; i < custNumbers.size(); i++) {
-
             PreparedStatement pCount = postCon
                     .prepareStatement("select count(*) from migration_logs where customer_number =?");
             pCount.setString(1, custNumbers.get(i));
@@ -189,7 +188,7 @@ public class ETLThread implements Runnable {
                         pstmt.execute();
                         pstmt.close();
                         System.out.println("[INFO] Data inserted for: " + custNumbers.get(i));
-
+ 
                     } catch (Exception ex) {
                         try {
                             pstmt = postCon.prepareStatement(

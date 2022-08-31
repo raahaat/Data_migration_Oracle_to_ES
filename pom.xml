@@ -73,8 +73,6 @@
           <descriptorRefs>
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
-          <finalName>ETLScript</finalName>
-          <appendAssemblyId>false</appendAssemblyId>
         </configuration>
 
         <executions>
